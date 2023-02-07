@@ -55,7 +55,7 @@ simulator Ambo_Simulator(action: Action, config: ambo_Config): SimState {
 
 graph (input: ObsState): Action {
 
-    concept cost_reduction(input): Action {
+    concept response_time(input): Action {
         curriculum {
             reward Reward
             terminal Terminal
@@ -67,5 +67,5 @@ graph (input: ObsState): Action {
             }
         }
     }
-    output cost_reduction 
+    output response_time 
 }

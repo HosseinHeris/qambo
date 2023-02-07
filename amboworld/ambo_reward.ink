@@ -23,7 +23,7 @@ type Action {
 }
 
 #siemens industrial benchmark (SIB) config
-#is managed by gym versions 
+# is managed by gym versions 
 # possible config and the their default values are shown below: 
 # RANDOM_SEED = 42
 # SIM_DURATION = 5000
@@ -53,7 +53,7 @@ function Terminal(ss: SimState) {
 simulator Ambo_Simulator(action: Action, config: ambo_Config): SimState {
 }
 
-graph (input: GameState): Action {
+graph (input: ObsState): Action {
 
     concept cost_reduction(input): Action {
         curriculum {

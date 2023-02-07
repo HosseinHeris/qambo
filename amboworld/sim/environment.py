@@ -5,10 +5,12 @@ import numpy as np
 import random
 import simpy
 
-from amboworld.ambulance import Ambulance
-from amboworld.patient import Patient
-from amboworld.utils import get_distance
-
+# from amboworld.sim.ambulance import Ambulance
+# from amboworld.sim.patient import Patient
+# from amboworld.sim.utils import get_distance
+from ambulance import Ambulance
+from patient import Patient
+from utils import get_distance
 
 class Env(gym.Env):
     """Custom Environment that follows gym interface.
@@ -119,23 +121,23 @@ class Env(gym.Env):
     render
     """
 
-    def __init__(self, max_size=50, 
-                number_ambulances=8,
-                number_dispatch_points=25,
-                number_epochs=2,
-                number_incident_points=4,
-                incident_range=0.0,
-                number_hospitals=1,
-                duration_incidents=1e5,
-                ambo_kph=60.0,
-                random_seed=42,
-                incident_interval=20,
-                time_step=1,
-                render_env=False,
-                print_output=False,
-                render_grid_size=25,
-                render_interval=10,
-                ambo_free_from_hospital=True):
+    def __init__(self, max_size=50,
+                 number_ambulances=8,
+                 number_dispatch_points=25,
+                 number_epochs=2,
+                 number_incident_points=4,
+                 incident_range=0.0,
+                 number_hospitals=1,
+                 duration_incidents=1e5,
+                 ambo_kph=60.0,
+                 random_seed=42,
+                 incident_interval=20,
+                 time_step=1,
+                 render_env=False,
+                 print_output=False,
+                 render_grid_size=25,
+                 render_interval=10,
+                 ambo_free_from_hospital=True):
         """Constructor class for amboworld"""
 
         # Inherit from super class
@@ -171,11 +173,11 @@ class Env(gym.Env):
 
         # Set action space (as a choice from dispatch points)
         self.action_space = spaces.Discrete(self.number_dispatch_points)
-        # Set observation space: number of ambos currently assigned to each 
+        # Set observation space: number of ambos currently assigned to each
         # dispatch point + Location of ambo to be assigned (as fraction 0-1),
         # and time of day (as fraction 0-1)
         self.observation_space = spaces.Box(
-            low=0, high=number_ambulances - 1, 
+            low=0, high=number_ambulances - 1,
             shape=(number_dispatch_points + 3, 1), dtype=np.uint8)
 
         # Set up hospital, dispatch  and incident point locations
@@ -193,21 +195,21 @@ class Env(gym.Env):
 
         # Get closest ambulance
         best_distance = 9999999
-        for ambo in self.free_ambulances:        
+        for ambo in self.free_ambulances:
             if ambo.at_dispatch_point or ambo.at_hospital:
                 ambo_x = ambo.current_x
                 ambo_y = ambo.current_y
             else:
                 # Check if ambo may be assigned before reaching dispatch point
                 if self.ambo_free_from_hospital:
-                # Need to work out current location
+                    # Need to work out current location
                     time_elapsed = self.simpy_env.now - ambo.time_journey_start
                     fraction_travelled = time_elapsed / ambo.journey_time
                     ambo_x = (ambo.start_x + ((ambo.target_x - ambo.start_x) *
-                            fraction_travelled))
+                                              fraction_travelled))
                     ambo_y = (ambo.start_y + ((ambo.target_y - ambo.start_y) *
-                            fraction_travelled))
-        
+                                              fraction_travelled))
+
             # Get distance from patient to ambulance
             distance = get_distance(patient.incident_x, patient.incident_y,
                                     ambo_x, ambo_y)
@@ -234,7 +236,8 @@ class Env(gym.Env):
         ambo.time_journey_start = self.simpy_env.now
         ambo.free = False
         if self.print_output:
-            print(f'Patient {patient.id} ambulance {ambo.ambulance_id} assigned: {self.simpy_env.now:0.1f}')
+            print(
+                f'Patient {patient.id} ambulance {ambo.ambulance_id} assigned: {self.simpy_env.now:0.1f}')
         # SimPy timeout for ambulance travel
         yield self.simpy_env.timeout(ambo_travel_time)
 
@@ -245,7 +248,8 @@ class Env(gym.Env):
         ambo.current_x = patient.incident_x
         ambo.current_y = patient.incident_y
         if self.print_output:
-            print(f'Patient {patient.id} ambulance arrived: {self.simpy_env.now:0.1f}')
+            print(
+                f'Patient {patient.id} ambulance arrived: {self.simpy_env.now:0.1f}')
         self.patients_assignment_to_ambo_arrival.remove(patient)
         self.patients_in_transit.append(patient)
         assigned_to_arrival = \
@@ -261,7 +265,7 @@ class Env(gym.Env):
         for hospital_index in range(self.number_hospitals):
             distance = get_distance(
                 patient.incident_x, patient.incident_y,
-                self.hospitals[hospital_index][0], 
+                self.hospitals[hospital_index][0],
                 self.hospitals[hospital_index][1])
             if distance < best_distance:
                 # New best distance found
@@ -284,7 +288,8 @@ class Env(gym.Env):
         ambo.current_x = self.hospitals[best_hospital][0]
         ambo.current_y = self.hospitals[best_hospital][1]
         if self.print_output:
-            print(f'Patient {patient.id} arrived at hospital: {self.simpy_env.now:0.1f}')
+            print(
+                f'Patient {patient.id} arrived at hospital: {self.simpy_env.now:0.1f}')
         patient.time_arrive_at_hospital = self.simpy_env.now
         self.completed_incidents.append(patient)
 
@@ -308,7 +313,7 @@ class Env(gym.Env):
         reward = None
         if len(self.reward_response_times) > 0:
             reward = 0 - self.reward_response_times.pop(0)
-            
+
         reward = 0 - reward ** 2
 
         return reward
@@ -339,9 +344,9 @@ class Env(gym.Env):
             # Generate patient
             self.calls += 1
             self.counter_patients += 1
-            patient = Patient(self.simpy_env, self.counter_patients, 
-                self.number_incident_points, self.incident_points, 
-                self.incident_range, self.max_size, self.number_epochs)
+            patient = Patient(self.simpy_env, self.counter_patients,
+                              self.number_incident_points, self.incident_points,
+                              self.incident_range, self.max_size, self.number_epochs)
             self.patients_waiting_for_assignment.append(patient)
             if self.print_output:
                 print(f'Incident: {self.simpy_env.now:0.1f}')
@@ -376,7 +381,7 @@ class Env(gym.Env):
         rows_cols = int(self.number_dispatch_points ** 0.5)
         add_random = self.number_dispatch_points - (rows_cols ** 2)
         # Padding before any dispatch point is placed
-        pad = self.max_size / (rows_cols + 1) /2
+        pad = self.max_size / (rows_cols + 1) / 2
         points = np.linspace(pad, self.max_size - pad, rows_cols)
         for x in points:
             for y in points:
@@ -395,7 +400,7 @@ class Env(gym.Env):
         Set hospital locations. Use set location sup to 4 hospitals,
         othwerwise use uniform random distribution
         """
-        
+
         if self.number_hospitals == 1:
             x = self.max_size / 2
             y = self.max_size / 2
@@ -452,7 +457,6 @@ class Env(gym.Env):
             self.incident_points.append(epoch_incident_points)
 
     def _travel_to_dispatch_point(self, ambo):
-
         """
         Ambulance travel to dispatch point
         """
@@ -512,8 +516,8 @@ class Env(gym.Env):
             yield self.simpy_env.timeout(self.render_interval)
 
             # Set up empty grid
-            grid = np.chararray((self.render_grid_size, self.render_grid_size), 
-                unicode=True)
+            grid = np.chararray((self.render_grid_size, self.render_grid_size),
+                                unicode=True)
             grid.fill('.')
 
             # Calculate scaling factor for sim co-ordinates to render grid
@@ -551,10 +555,10 @@ class Env(gym.Env):
                     # Need to work out current location
                     time_elapsed = self.simpy_env.now - ambo.time_journey_start
                     fraction_travelled = time_elapsed / ambo.journey_time
-                    x = (ambo.start_x + ((ambo.target_x - ambo.start_x) * 
-                            fraction_travelled))
-                    y = (ambo.start_y + ((ambo.target_y - ambo.start_y) * 
-                            fraction_travelled))
+                    x = (ambo.start_x + ((ambo.target_x - ambo.start_x) *
+                                         fraction_travelled))
+                    y = (ambo.start_y + ((ambo.target_y - ambo.start_y) *
+                                         fraction_travelled))
                     x = int(x * scale)
                     y = int(y * scale)
                     grid[y][x] = 'A'
@@ -579,6 +583,8 @@ class Env(gym.Env):
         self.simpy_env = simpy.Environment()
 
         # Reset lists and trackers
+        self.ambos_assigned_to_dispatch_points = np.zeros(
+            self.number_dispatch_points)
         self.completed_incidents = []
         self.free_ambulances = []
         self.unallocated_ambos = []
@@ -653,3 +659,76 @@ class Env(gym.Env):
             'fraction_demand_met': np.round(self.demand_met / self.calls, 3)}
 
         return (obs, reward, terminal, info)
+
+
+if __name__ == "__main__":
+    TEST_EPISODES = 5
+
+    # Set whether to display on screen (slows model)
+    DISPLAY_ON_SCREEN = True
+
+    # SIM PARAMETERS
+    RANDOM_SEED = 42
+    SIM_DURATION = 5000
+    NUMBER_AMBULANCES = 3
+    NUMBER_INCIDENT_POINTS = 1
+    INCIDENT_RADIUS = 2
+    NUMBER_DISPTACH_POINTS = 5
+    AMBOWORLD_SIZE = 25
+    INCIDENT_INTERVAL = 60
+    EPOCHS = 2
+    AMBO_SPEED = 60
+    AMBO_FREE_FROM_HOSPITAL = False
+
+    results = dict()
+    results['call_to_arrival'] = []
+    results['assign_to_arrival'] = []
+    results['demand_met'] = []
+
+    sim = Env(
+        random_seed=RANDOM_SEED,
+        duration_incidents=SIM_DURATION,
+        number_ambulances=NUMBER_AMBULANCES,
+        number_incident_points=NUMBER_INCIDENT_POINTS,
+        incident_interval=INCIDENT_INTERVAL,
+        number_epochs=EPOCHS,
+        number_dispatch_points=NUMBER_DISPTACH_POINTS,
+        incident_range=INCIDENT_RADIUS,
+        max_size=AMBOWORLD_SIZE,
+        ambo_kph=AMBO_SPEED,
+        ambo_free_from_hospital=AMBO_FREE_FROM_HOSPITAL
+    )
+
+    for run in range(TEST_EPISODES):
+
+        # Reset game environment and get first state observations
+        state = sim.reset()
+
+        # Continue loop until episode complete
+        while True:
+            action = random.randint(0, sim.action_number - 1)
+            state_next, reward, terminal, info = sim.step(action)
+
+            # Actions to take if end of game episode
+            if terminal:
+
+                print(f'Run: {run}, ', end='')
+                mean_assignment_to_arrival = np.mean(
+                    info['assignment_to_arrival'])
+                print(
+                    f'Mean assignment to arrival: {mean_assignment_to_arrival:4.1f}, ', end='')
+                mean_call_to_arrival = np.mean(info['call_to_arrival'])
+                print(
+                    f'Mean call to arrival: {mean_call_to_arrival:4.1f}, ', end='')
+                demand_met = info['fraction_demand_met']
+                print(f'Demand met {demand_met:0.3f}')
+
+                results['call_to_arrival'].append(mean_call_to_arrival)
+                results['assign_to_arrival'].append(mean_assignment_to_arrival)
+                results['demand_met'].append(demand_met)
+
+                break
+
+    # results = pd.DataFrame(results)
+    # filename = './output/results_random_action.csv'
+    # results.to_csv(filename, index=False)

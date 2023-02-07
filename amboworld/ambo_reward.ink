@@ -60,7 +60,7 @@ graph (input: ObsState): Action {
             reward Reward
             terminal Terminal
             source Ambo_Simulator
-            lesson minimize_cost {
+            lesson minimize_response_time {
                 scenario {
                     episode_length: -1,
                 }

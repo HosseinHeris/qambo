@@ -1,0 +1,9 @@
+{
+    "name": "ambo_dispatch",
+    "timeout": 3600,
+    "description": {
+        "config": {"empty":0},
+        "action": {"empty":0},
+        "state": {"empty":0}
+    }
+}

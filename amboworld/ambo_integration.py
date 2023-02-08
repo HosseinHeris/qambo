@@ -16,6 +16,7 @@ Usage:
 from functools import partial
 import json
 import random
+import numpy as np 
 import math
 import time
 import os
@@ -41,13 +42,13 @@ LOG_PATH = "logs"
 
 DISPLAY_ON_SCREEN = True
 
-# SIM PARAMETERS
+# SIM PARAMETER
 RANDOM_SEED = 42
 SIM_DURATION = 5000
 NUMBER_AMBULANCES = 3
 NUMBER_INCIDENT_POINTS = 1
 INCIDENT_RADIUS = 2
-NUMBER_DISPTACH_POINTS = 9
+NUMBER_DISPTACH_POINTS = 25
 AMBOWORLD_SIZE = 2*NUMBER_DISPTACH_POINTS
 INCIDENT_INTERVAL = 60
 EPOCHS = 2
@@ -92,7 +93,7 @@ class TemplateSimulatorSession:
         env_name: str = "AmbulanceDispatcher",
     ):
         # Initialize python api for simulator
-        self.simulator = environment.Env()
+        self.simulator = environment.Env(**DEFAULT_CONFIG)
         self.env_name = env_name
         self.render = render
         self.log_data = log_data
@@ -109,9 +110,11 @@ class TemplateSimulatorSession:
 
     def get_state(self) -> Dict[str, Any]:
         """Called to retreive the current state of the simulator. """
+        print('sim_observations:', self.sim_observation)
+        print('shape of dispatches:', len(self.sim_observation[0:-3]))
         return {
             # Add simulator state as dictionary
-            "dispatches": float(self.sim_observation[0:-3]),
+            "dispatches": np.array(self.sim_observation[0:-3]).tolist(),
             "location_x": float(self.sim_observation[-3]),
             "location_y": float(self.sim_observation[-2]),
             "time": float(self.sim_observation[-1]),
@@ -282,8 +285,10 @@ def test_policy(
         iteration += 1
         while not terminal:
             action = policy(sim_state)
+            print('action is', action)
             sim.episode_step(action)
             sim_state = sim.get_state()
+            print('sim_state is', sim_state)
             if log_iterations:
                 sim.log_iterations(sim_state, action, episode, iteration)
             print(f"Running iteration #{iteration} for episode #{episode}")
@@ -292,7 +297,31 @@ def test_policy(
             terminal = iteration >= num_iterations+2 or sim.halted()
 
     return sim
-
+    # for episode in range(0, num_episodes):
+    #     iteration = 1
+    #     terminal = False
+    #     # sim_state = sim.episode_start(config=default_config)
+    #     sim_state = sim.episode_start(config=scenario_configs[episode-1])
+    #     sim_state = sim.get_state()
+    #     if log_iterations:
+    #         action = policy(sim_state)
+    #         for key, value in action.items():
+    #             action[key] = None
+    #         sim.log_iterations(sim_state, action, episode, iteration)
+    #     print('------------------------------------------------------')
+    #     print(f"Running iteration #{iteration} for episode #{episode}")
+    #     iteration += 1
+    #     while not terminal:
+    #         action = policy(sim_state)
+    #         sim.episode_step(action)
+    #         sim_state = sim.get_state()
+    #         if log_iterations:
+    #             sim.log_iterations(sim_state, action, episode, iteration)
+    #         print('------------------------------------------------------')
+    #         print(f"Running iteration #{iteration} for episode #{episode}")
+    #         iteration += 1
+    #         terminal = iteration >= num_iterations+2 or sim.halted()
+    # return sim
 
 def main(
     render: bool = False,

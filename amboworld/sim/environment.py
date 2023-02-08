@@ -8,9 +8,12 @@ import simpy
 # from amboworld.sim.ambulance import Ambulance
 # from amboworld.sim.patient import Patient
 # from amboworld.sim.utils import get_distance
-from ambulance import Ambulance
-from patient import Patient
-from utils import get_distance
+from .ambulance import Ambulance
+from .patient import Patient
+from .utils import get_distance
+# from ambulance import Ambulance
+# from patient import Patient
+# from utils import get_distance
 
 class Env(gym.Env):
     """Custom Environment that follows gym interface.
@@ -187,6 +190,71 @@ class Env(gym.Env):
 
         # During writing use printing of times
         self.print_output = print_output
+
+    def episode_reset(self,max_size=50,
+                 number_ambulances=8,
+                 number_dispatch_points=25,
+                 number_epochs=2,
+                 number_incident_points=4,
+                 incident_range=0.0,
+                 number_hospitals=1,
+                 duration_incidents=1e5,
+                 ambo_kph=60.0,
+                 random_seed=42,
+                 incident_interval=20,
+                 time_step=1,
+                 render_env=False,
+                 print_output=False,
+                 render_grid_size=25,
+                 render_interval=10,
+                 ambo_free_from_hospital=True):
+        '''
+        Added the reset for better control of sim size etc from bonsai platfrom 
+        '''
+        self.action_number = int(number_dispatch_points)
+        self.ambo_free_from_hospital = ambo_free_from_hospital
+        self.ambo_speed = ambo_kph / 60
+        self.ambos_assigned_to_dispatch_points = \
+            np.zeros(number_dispatch_points)
+        self.counter_patients = 0
+        self.counter_ambulances = 0
+        self.dispatch_points = []
+        self.hospitals = []
+        self.incident_interval = incident_interval
+        self.incident_range = incident_range
+        self.incident_points = []
+        self.max_size = int(max_size)
+        self.number_ambulances = max(1, int(number_ambulances))
+        self.number_dispatch_points = max(1, int(number_dispatch_points))
+        self.number_epochs = number_epochs
+        self.number_hospitals = max(1, int(number_hospitals))
+        self.number_incident_points = number_incident_points
+        self.observation_size = number_dispatch_points + 3
+        self.random_seed = int(random_seed)
+        self.render_env = bool(render_env)
+        self.render_grid_size = render_grid_size
+        self.render_interval = render_interval
+        self.sim_duration = duration_incidents
+        self.sim_time_step = time_step
+        self.step_count = 0
+
+        # Set action space (as a choice from dispatch points)
+        self.action_space = spaces.Discrete(self.number_dispatch_points)
+        # Set observation space: number of ambos currently assigned to each
+        # dispatch point + Location of ambo to be assigned (as fraction 0-1),
+        # and time of day (as fraction 0-1)
+        self.observation_space = spaces.Box(
+            low=0, high=number_ambulances - 1,
+            shape=(number_dispatch_points + 3, 1), dtype=np.uint8)
+
+        # Set up hospital, dispatch  and incident point locations
+        self._set_dispatch_points()
+        self._set_incident_locations()
+        self._set_hospital_locations()
+
+        # During writing use printing of times
+        self.print_output = print_output  
+        self.reset()      
 
     def _assign_ambo(self, patient):
         """
